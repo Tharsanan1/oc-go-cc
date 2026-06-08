@@ -181,8 +181,24 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("api_key or api_keys is required (set via config file or OC_GO_CC_API_KEY env var)")
 	}
 
+	if err := validateAPIKeys(cfg.APIKeys); err != nil {
+		return err
+	}
+
 	if err := validateModelOverrides(cfg.ModelOverrides); err != nil {
 		return err
+	}
+	return nil
+}
+
+// validateAPIKeys ensures no api_keys entries contain unresolved ${VAR} placeholders.
+// Unresolved placeholders indicate the user did not set the corresponding env vars,
+// and the literal placeholder string would be sent as a bearer token.
+func validateAPIKeys(keys []string) error {
+	for i, key := range keys {
+		if envVarPattern.MatchString(key) {
+			return fmt.Errorf("api_keys[%d] contains unresolved env var %q — set the corresponding environment variable or remove this entry", i, key)
+		}
 	}
 	return nil
 }

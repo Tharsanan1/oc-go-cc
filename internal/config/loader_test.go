@@ -470,3 +470,43 @@ func TestLoadMissingAPIKey_NoKeys(t *testing.T) {
 		t.Fatal("Load() expected error for missing API key, got nil")
 	}
 }
+
+func TestValidateAPIKeys_RejectsUnresolvedPlaceholder(t *testing.T) {
+	cfg := &Config{
+		APIKeys: []string{"valid-key", "${UNRESOLVED_VAR}"},
+	}
+	err := validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error for unresolved placeholder, got nil")
+	}
+}
+
+func TestValidateAPIKeys_AcceptsResolvedKeys(t *testing.T) {
+	cfg := &Config{
+		APIKeys: []string{"key-1", "key-2"},
+	}
+	if err := validate(cfg); err != nil {
+		t.Errorf("expected no validation error, got %v", err)
+	}
+}
+
+func TestLoad_RejectsUnresolvedAPIKeysPlaceholders(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+
+	cfgJSON := `{
+		"api_keys": ["real-key", "${OC_GO_CC_UNSET_TEST_PLACEHOLDER}"]
+	}`
+	if err := os.WriteFile(cfgPath, []byte(cfgJSON), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	_ = os.Setenv("OC_GO_CC_CONFIG", cfgPath)
+	defer func() { _ = os.Unsetenv("OC_GO_CC_CONFIG") }()
+	_ = os.Unsetenv("OC_GO_CC_UNSET_TEST_PLACEHOLDER")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for unresolved placeholder in api_keys, got nil")
+	}
+}
