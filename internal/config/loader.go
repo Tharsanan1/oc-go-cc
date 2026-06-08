@@ -107,7 +107,11 @@ func interpolateEnvVars(s string) string {
 // applyEnvOverrides applies environment variable overrides to the config.
 func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("OC_GO_CC_API_KEY"); v != "" {
-		cfg.APIKey = v
+		if len(cfg.APIKeys) > 0 {
+			cfg.APIKeys = append(cfg.APIKeys, v)
+		} else {
+			cfg.APIKey = v
+		}
 	}
 	if v := os.Getenv("OC_GO_CC_HOST"); v != "" {
 		cfg.Host = v
@@ -173,8 +177,8 @@ func applyDefaults(cfg *Config) {
 
 // validate checks that all required configuration fields are present.
 func validate(cfg *Config) error {
-	if cfg.APIKey == "" {
-		return fmt.Errorf("api_key is required (set via config file or OC_GO_CC_API_KEY env var)")
+	if cfg.APIKey == "" && len(cfg.APIKeys) == 0 {
+		return fmt.Errorf("api_key or api_keys is required (set via config file or OC_GO_CC_API_KEY env var)")
 	}
 
 	if err := validateModelOverrides(cfg.ModelOverrides); err != nil {

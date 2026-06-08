@@ -29,7 +29,6 @@ type OpenCodeClient struct {
 }
 
 // nextAPIKey returns the next API key in round-robin order from the configured key pool.
-// The counter is kept in [0, n) via CAS so it never overflows.
 func (c *OpenCodeClient) nextAPIKey() string {
 	cfg := c.atomic.Get()
 	keys := cfg.EffectiveAPIKeys()
@@ -37,12 +36,8 @@ func (c *OpenCodeClient) nextAPIKey() string {
 		return ""
 	}
 	n := uint64(len(keys))
-	for {
-		old := c.keyCounter.Load()
-		if c.keyCounter.CompareAndSwap(old, (old+1)%n) {
-			return keys[old%n]
-		}
-	}
+	old := c.keyCounter.Add(1)
+	return keys[(old-1)%n]
 }
 
 // NewOpenCodeClient creates a new OpenCode client.
