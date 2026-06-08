@@ -107,11 +107,8 @@ func interpolateEnvVars(s string) string {
 // applyEnvOverrides applies environment variable overrides to the config.
 func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("OC_GO_CC_API_KEY"); v != "" {
-		if len(cfg.APIKeys) > 0 {
-			cfg.APIKeys = append(cfg.APIKeys, v)
-		} else {
-			cfg.APIKey = v
-		}
+		cfg.APIKey = v
+		cfg.APIKeys = nil // env var overrides both api_key and api_keys
 	}
 	if v := os.Getenv("OC_GO_CC_HOST"); v != "" {
 		cfg.Host = v

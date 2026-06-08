@@ -196,6 +196,10 @@ func TestEnvOverrides(t *testing.T) {
 	if cfg.APIKey != "env-key" {
 		t.Errorf("APIKey = %q, want %q", cfg.APIKey, "env-key")
 	}
+	// Env var must be the effective key (not appended to api_keys).
+	if keys := cfg.EffectiveAPIKeys(); len(keys) != 1 || keys[0] != "env-key" {
+		t.Errorf("EffectiveAPIKeys() = %v, want [env-key]", keys)
+	}
 	if cfg.Host != "env-host" {
 		t.Errorf("Host = %q, want %q", cfg.Host, "env-host")
 	}
@@ -207,6 +211,35 @@ func TestEnvOverrides(t *testing.T) {
 	}
 	if cfg.Logging.Level != "warn" {
 		t.Errorf("LogLevel = %q, want %q", cfg.Logging.Level, "warn")
+	}
+}
+
+func TestEnvOverrides_OC_GO_CC_API_KEY_OverridesAPIKeys(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+
+	cfJSON := `{
+		"api_keys": ["file-key-1", "file-key-2"]
+	}`
+	if err := os.WriteFile(cfgPath, []byte(cfJSON), 0644); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	_ = os.Setenv("OC_GO_CC_CONFIG", cfgPath)
+	_ = os.Setenv("OC_GO_CC_API_KEY", "env-key")
+	defer func() {
+		_ = os.Unsetenv("OC_GO_CC_CONFIG")
+		_ = os.Unsetenv("OC_GO_CC_API_KEY")
+	}()
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	// Env var must fully replace the key pool, not append to it.
+	if keys := cfg.EffectiveAPIKeys(); len(keys) != 1 || keys[0] != "env-key" {
+		t.Errorf("EffectiveAPIKeys() = %v, want [env-key]", keys)
 	}
 }
 
