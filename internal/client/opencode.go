@@ -28,10 +28,10 @@ type OpenCodeClient struct {
 	keyCounter atomic.Uint64
 }
 
-// nextAPIKey returns the next API key in round-robin order from the configured key pool.
-func (c *OpenCodeClient) nextAPIKey() string {
-	cfg := c.atomic.Get()
-	keys := cfg.EffectiveAPIKeys()
+// nextAPIKey returns the next API key in round-robin order from the given key pool.
+// The caller provides keys from a single config read so baseURL and apiKey
+// always come from the same snapshot.
+func (c *OpenCodeClient) nextAPIKey(keys []string) string {
 	if len(keys) == 0 {
 		return ""
 	}
@@ -148,7 +148,7 @@ func isResponsesModel(modelID string) bool {
 // getEndpoint returns the appropriate endpoint config for a model.
 func (c *OpenCodeClient) getEndpoint(modelID string, modelConfig config.ModelConfig) endpointConfig {
 	cfg := c.atomic.Get()
-	apiKey := c.nextAPIKey()
+	apiKey := c.nextAPIKey(cfg.EffectiveAPIKeys())
 
 	if IsZen(modelConfig) {
 		zen := cfg.OpenCodeZen
@@ -277,14 +277,14 @@ func (c *OpenCodeClient) SendAnthropicRequest(
 	modelConfig config.ModelConfig,
 ) (*http.Response, error) {
 	cfg := c.atomic.Get()
-	var baseURL string
+	apiKey := c.nextAPIKey(cfg.EffectiveAPIKeys())
 
+	var baseURL string
 	if IsZen(modelConfig) {
 		baseURL = cfg.OpenCodeZen.AnthropicBaseURL
 	} else {
 		baseURL = cfg.OpenCodeGo.AnthropicBaseURL
 	}
-	apiKey := c.nextAPIKey()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL, bytes.NewReader(body))
 	if err != nil {
