@@ -193,6 +193,9 @@ func validate(cfg *Config) error {
 // and the literal placeholder string would be sent as a bearer token.
 func validateAPIKeys(keys []string) error {
 	for i, key := range keys {
+		if key == "" {
+			return fmt.Errorf("api_keys[%d] is empty — each key must be a non-empty string", i)
+		}
 		if envVarPattern.MatchString(key) {
 			return fmt.Errorf("api_keys[%d] contains unresolved env var %q — set the corresponding environment variable or remove this entry", i, key)
 		}

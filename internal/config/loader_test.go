@@ -543,3 +543,23 @@ func TestLoad_RejectsUnresolvedAPIKeysPlaceholders(t *testing.T) {
 		t.Fatal("Load() expected error for unresolved placeholder in api_keys, got nil")
 	}
 }
+
+func TestValidateAPIKeys_RejectsEmptyEntry(t *testing.T) {
+	cfg := &Config{
+		APIKeys: []string{"valid-key", ""},
+	}
+	err := validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error for empty api_keys entry, got nil")
+	}
+}
+
+func TestValidateAPIKeys_RejectsAllEmpty(t *testing.T) {
+	cfg := &Config{
+		APIKeys: []string{""},
+	}
+	err := validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error for empty api_keys entry, got nil")
+	}
+}
