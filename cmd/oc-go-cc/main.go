@@ -114,6 +114,9 @@ func serveCmd() *cobra.Command {
 				}
 			} else {
 				// Write PID file for foreground mode.
+				if err := os.MkdirAll(filepath.Dir(pidPath), 0755); err != nil {
+					return fmt.Errorf("failed to create PID directory: %w", err)
+				}
 				if err := daemon.WritePID(pidPath, os.Getpid()); err != nil {
 					return fmt.Errorf("failed to write PID file: %w", err)
 				}
